@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>GXO — Driver Check-In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --orange:     #FF3A00;
+  --orange-dim: #CC2E00;
+  --orange-glow:rgba(255,58,0,0.15);
+  --black:      #0A0A0A;
+  --black-2:    #111111;
+  --black-3:    #1A1A1A;
+  --black-4:    #222222;
+  --white:      #F5F5F0;
+  --white-60:   rgba(245,245,240,0.6);
+  --white-30:   rgba(245,245,240,0.3);
+  --white-10:   rgba(245,245,240,0.08);
+  --white-5:    rgba(245,245,240,0.04);
+  --green:      #00C851;
+  --radius:     6px;
+  --transition: cubic-bezier(0.4,0,0.2,1);
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { font-size: 16px; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--black);
+  color: var(--white);
+  min-height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+.screen {
+  position: fixed; inset: 0; display: flex; flex-direction: column;
+  visibility: hidden; opacity: 0; pointer-events: none;
+  transition: opacity 0.5s var(--transition), visibility 0.5s;
+  overflow-y: auto; overflow-x: hidden;
+}
+.screen.active { visibility: visible; opacity: 1; pointer-events: all; }
+
+/* SCREEN 0 — LANGUAGE */
+#s-lang { background: var(--black); align-items: center; justify-content: center; overflow: hidden; }
+.grid-bg {
+  position: absolute; inset: -50%;
+  background-image: linear-gradient(rgba(255,58,0,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,58,0,0.06) 1px, transparent 1px);
+  background-size: 60px 60px; animation: gridShift 20s linear infinite;
+}
+@keyframes gridShift { to { transform: translate(60px, 60px); } }
+.radial-glow {
+  position: absolute; width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(255,58,0,0.12) 0%, transparent 65%);
+  border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  animation: pulse 4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { transform: translate(-50%,-50%) scale(1); opacity:1; }
+  50% { transform: translate(-50%,-50%) scale(1.1); opacity:0.7; }
+}
+.lang-inner { position: relative; z-index: 2; text-align: center; padding: 2rem; animation: fadeUp 0.9s var(--transition) both; }
+.gxo-wordmark { display: inline-flex; align-items: baseline; gap: 0; margin-bottom: 0.5rem; }
+.gxo-wordmark .g, .gxo-wordmark .x, .gxo-wordmark .o {
+  font-family: 'Bebas Neue', sans-serif; font-size: clamp(5rem, 20vw, 8rem); line-height: 1; letter-spacing: -4px;
+}
+.gxo-wordmark .g { color: var(--white); }
+.gxo-wordmark .x { color: var(--orange); }
+.gxo-wordmark .o { color: var(--white); }
+.tagline { font-size: 0.65rem; letter-spacing: 0.4em; text-transform: uppercase; color: var(--white-30); margin-bottom: 3.5rem; font-weight: 500; }
+.lang-prompt { font-size: 0.7rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--white-30); margin-bottom: 1.5rem; font-weight: 500; }
+.lang-grid { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; max-width: 460px; }
+.lang-card {
+  position: relative; background: var(--white-5); border: 1px solid var(--white-10); border-radius: var(--radius);
+  padding: 1.5rem 1.75rem; cursor: pointer; transition: all 0.3s var(--transition); min-width: 96px; overflow: hidden;
+}
+.lang-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--orange), var(--orange-dim)); opacity: 0; transition: opacity 0.3s;
+}
+.lang-card:hover { border-color: var(--orange); transform: translateY(-4px); box-shadow: 0 16px 40px rgba(255,58,0,0.2); }
+.lang-card:hover::before { opacity: 1; }
+.lang-card:active { transform: translateY(-2px); }
+.lang-flag { position: relative; z-index: 1; font-size: 2.2rem; display: block; margin-bottom: 0.5rem; }
+.lang-label { position: relative; z-index: 1; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--white); }
+.admin-access {
+  position: absolute; bottom: 18px; right: 18px; z-index: 3; background: var(--white-5); border: 1px solid var(--white-10);
+  color: var(--white-30); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 1rem; transition: all 0.2s;
+}
+.admin-access:hover { border-color: var(--orange); color: var(--orange); }
+
+/* SCREEN 1 — SLIDES */
+#s-slides { background: var(--black); flex-direction: column; }
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--white-10); flex-shrink: 0; background: rgba(10,10,10,0.9);
+  backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 100;
+}
+.topbar-logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: -1px; line-height: 1; }
+.topbar-logo .x { color: var(--orange); }
+.topbar-info { text-align: right; }
+.topbar-site { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--white-30); line-height: 1.6; }
+.progress-track { height: 2px; background: var(--white-10); flex-shrink: 0; }
+.progress-fill { height: 100%; background: var(--orange); transition: width 0.6s var(--transition); box-shadow: 0 0 8px rgba(255,58,0,0.5); }
+.slides-area { flex: 1; position: relative; overflow: hidden; min-height: 0; }
+.slide {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 2rem 1.5rem; text-align: center; opacity: 0; transform: translateX(80px) scale(0.98);
+  transition: opacity 0.55s var(--transition), transform 0.55s var(--transition); pointer-events: none; overflow-y: auto;
+}
+.slide.active { opacity: 1; transform: none; pointer-events: all; }
+.slide.exit { opacity: 0; transform: translateX(-80px) scale(0.98); }
+.slide-badge {
+  display: inline-flex; align-items: center; gap: 0.5rem; background: var(--orange-glow);
+  border: 1px solid rgba(255,58,0,0.25); border-radius: 20px; padding: 0.3rem 0.9rem; font-size: 0.65rem;
+  font-weight: 600; letter-spacing: 0.25em; text-transform: uppercase; color: var(--orange); margin-bottom: 1.5rem; flex-shrink:0;
+}
+.icon-ring {
+  width: 78px; height: 78px; border-radius: 50%; border: 1px solid var(--white-10); background: var(--white-5);
+  display: flex; align-items: center; justify-content: center; font-size: 2.2rem; margin-bottom: 1.5rem; position: relative; flex-shrink:0;
+}
+.icon-ring::before { content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 1px solid rgba(255,58,0,0.2); }
+.icon-ring::after { content: ''; position: absolute; inset: -12px; border-radius: 50%; border: 1px solid rgba(255,58,0,0.08); }
+.slide-heading {
+  font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.2rem, 8vw, 3.6rem); line-height: 0.95;
+  letter-spacing: -0.02em; margin-bottom: 1.1rem; text-transform: uppercase; flex-shrink:0;
+}
+.slide-heading em { color: var(--orange); font-style: normal; }
+.slide-body { font-size: clamp(0.9rem, 2.5vw, 1.05rem); line-height: 1.75; color: var(--white-60); max-width: 480px; font-weight: 300; }
+
+.safety-wrap { display: grid; grid-template-columns: 1fr; gap: 0.55rem; width: 100%; max-width: 480px; }
+.s-item {
+  display: flex; align-items: center; gap: 0.75rem; background: var(--white-5); border: 1px solid var(--white-10);
+  border-radius: var(--radius); padding: 0.7rem 0.9rem; text-align: left; transition: border-color 0.2s;
+}
+.s-item:hover { border-color: rgba(255,58,0,0.3); }
+.s-icon { font-size: 1.2rem; flex-shrink: 0; width: 1.4rem; text-align: center; }
+.s-text { font-size: 0.76rem; color: var(--white-60); font-weight: 500; line-height: 1.4; }
+.safety-note {
+  margin-top: 1.1rem; max-width: 480px; font-size: 0.72rem; color: var(--orange); font-weight: 600;
+  letter-spacing: 0.02em; line-height: 1.5;
+}
+
+.emergency-wrap { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; max-width: 480px; }
+.em-cat { background: var(--white-5); border: 1px solid var(--white-10); border-radius: var(--radius); padding: 0.9rem 1rem; text-align: left; }
+.em-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+.em-icon { font-size: 1.15rem; }
+.em-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em; color: var(--white); text-transform: uppercase; }
+.em-steps { list-style: none; padding-left: 1.9rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.em-steps li { font-size: 0.75rem; color: var(--white-60); line-height: 1.5; position: relative; }
+.em-steps li::before { content: '—'; position: absolute; left: -1.1rem; color: var(--orange); }
+.em-numbers { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.3rem; flex-wrap: wrap; }
+.em-num {
+  display: flex; flex-direction: column; align-items: center; gap: 0.15rem; background: var(--orange-glow);
+  border: 1px solid rgba(255,58,0,0.3); border-radius: var(--radius); padding: 0.55rem 1rem; min-width: 82px;
+}
+.em-num-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--orange); line-height: 1; }
+.em-num-label { font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--white-30); }
+
+.slides-nav {
+  display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.5rem;
+  border-top: 1px solid var(--white-10); flex-shrink: 0; background: rgba(10,10,10,0.9); backdrop-filter: blur(20px);
+}
+.dots { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; justify-content: center; max-width: 120px; }
+.dot { width: 5px; height: 5px; border-radius: 50%; background: var(--white-30); transition: all 0.35s var(--transition); }
+.dot.on { background: var(--orange); width: 16px; border-radius: 3px; box-shadow: 0 0 6px rgba(255,58,0,0.6); }
+.btn-next {
+  display: flex; align-items: center; gap: 0.6rem; background: var(--black-3); border: 1px solid var(--white-10);
+  color: var(--white); padding: 0.75rem 1.35rem; border-radius: var(--radius); font-family: 'DM Sans', sans-serif;
+  font-weight: 600; font-size: 0.8rem; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; transition: all 0.25s var(--transition);
+}
+.btn-next:hover { background: var(--black-4); border-color: var(--white-30); transform: translateX(2px); }
+.btn-next.cta { background: var(--orange); border-color: var(--orange); padding: 0.85rem 1.8rem; font-size: 0.85rem; box-shadow: 0 4px 20px rgba(255,58,0,0.3); }
+.btn-next.cta:hover { background: var(--orange-dim); border-color: var(--orange-dim); box-shadow: 0 8px 30px rgba(255,58,0,0.4); transform: none; }
+.arrow { transition: transform 0.2s; }
+.btn-next:hover .arrow { transform: translateX(3px); }
+.btn-back {
+  display: flex; align-items: center; gap: 0.5rem; background: transparent; border: 1px solid var(--white-10);
+  color: var(--white-30); padding: 0.75rem 1rem; border-radius: var(--radius); font-family: 'DM Sans', sans-serif;
+  font-weight: 500; font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: all 0.25s var(--transition); visibility: visible;
+}
+.btn-back:hover { border-color: var(--white-30); color: var(--white); transform: translateX(-2px); }
+.btn-back.hidden { visibility: hidden; pointer-events: none; }
+.btn-back-form {
+  display: flex; align-items: center; gap: 0.5rem; background: transparent; border: 1px solid var(--white-10);
+  color: var(--white-30); padding: 0.5rem 0.9rem; border-radius: var(--radius); font-family: 'DM Sans', sans-serif;
+  font-weight: 500; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: all 0.25s var(--transition);
+}
+.btn-back-form:hover { border-color: var(--white-30); color: var(--white); transform: translateX(-2px); }
+
+/* SCREEN 2 — FORM */
+#s-form { background: var(--black-2); overflow-y: auto; }
+.form-topbar {
+  display: flex; align-items: center; gap: 1rem; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--white-10);
+  background: var(--black); position: sticky; top: 0; z-index: 10; flex-shrink: 0;
+}
+.form-topbar-logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: -1px; }
+.form-topbar-logo .x { color: var(--orange); }
+.form-topbar-divider { width: 1px; height: 20px; background: var(--white-10); }
+.form-topbar-label { font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--white-30); font-weight: 500; }
+.form-content { padding: 2rem 1.5rem 3rem; max-width: 540px; margin: 0 auto; width: 100%; }
+.form-eyebrow { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--orange); font-weight: 600; margin-bottom: 0.75rem; }
+.form-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.2rem, 7vw, 3rem); line-height: 0.95; letter-spacing: -0.01em; margin-bottom: 0.5rem; text-transform: uppercase; }
+.form-subtitle { font-size: 0.85rem; color: var(--white-30); margin-bottom: 2.5rem; font-weight: 300; }
+.form-divider { height: 1px; background: var(--white-10); margin-bottom: 2rem; }
+.field { margin-bottom: 1.25rem; }
+.field-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.25em; text-transform: uppercase; color: var(--white-30); margin-bottom: 0.5rem; }
+.field-label .req { color: var(--orange); font-size: 0.8rem; }
+.field-input {
+  width: 100%; background: var(--black); border: 1px solid var(--white-10); border-radius: var(--radius);
+  padding: 0.9rem 1rem; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 400; color: var(--white);
+  transition: border-color 0.2s, box-shadow 0.2s; -webkit-appearance: none; outline: none;
+}
+.field-input::placeholder { color: var(--white-30); }
+.field-input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,58,0,0.1); }
+.select-wrap { position: relative; }
+.select-wrap::after {
+  content: ''; position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  border: 5px solid transparent; border-top-color: var(--white-30); margin-top: 3px; pointer-events: none;
+}
+.select-wrap select { background: var(--black); cursor: pointer; }
+.select-wrap select option { background: #1a1a1a; }
+.consent-row {
+  display: flex; gap: 0.85rem; align-items: flex-start; background: var(--white-5); border: 1px solid var(--white-10);
+  border-radius: var(--radius); padding: 1rem; margin-bottom: 2rem; cursor: pointer; transition: border-color 0.2s;
+}
+.consent-row:hover { border-color: rgba(255,58,0,0.25); }
+.checkbox-custom {
+  width: 20px; min-width: 20px; height: 20px; border: 1.5px solid var(--white-30); border-radius: 4px; background: var(--black);
+  display: flex; align-items: center; justify-content: center; transition: all 0.2s; margin-top: 1px;
+}
+.checkbox-custom.checked { background: var(--orange); border-color: var(--orange); }
+.checkbox-custom svg { display: none; }
+.checkbox-custom.checked svg { display: block; }
+.consent-text { font-size: 0.8rem; color: var(--white-60); line-height: 1.55; font-weight: 300; }
+
+.sig-block { margin-bottom: 2rem; }
+.sig-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+.sig-hint { font-size: 0.72rem; color: var(--white-30); font-weight: 300; margin-bottom: 0.6rem; }
+.sig-canvas-wrap {
+  position: relative; width: 100%; height: 170px; background: var(--white); border: 1px solid var(--white-10);
+  border-radius: var(--radius); overflow: hidden; touch-action: none;
+}
+.sig-canvas-wrap.error { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,58,0,0.15); }
+#sig-pad { width: 100%; height: 100%; display: block; cursor: crosshair; }
+.sig-placeholder {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; color: rgba(10,10,10,0.28); font-weight: 500; letter-spacing: 0.05em; pointer-events: none; text-transform: uppercase;
+}
+.sig-line { position: absolute; left: 5%; right: 5%; bottom: 28px; height: 1px; background: rgba(10,10,10,0.15); pointer-events: none; }
+.sig-clear {
+  background: transparent; border: 1px solid var(--white-10); color: var(--white-30); padding: 0.35rem 0.8rem;
+  border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 0.68rem;
+  letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+}
+.sig-clear:hover { border-color: var(--orange); color: var(--orange); }
+
+.btn-submit {
+  width: 100%; background: var(--orange); border: none; border-radius: var(--radius); padding: 1.1rem;
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.15em; color: var(--white);
+  cursor: pointer; transition: all 0.25s var(--transition); box-shadow: 0 4px 20px rgba(255,58,0,0.25); position: relative; overflow: hidden;
+}
+.btn-submit::before {
+  content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); transition: left 0.5s;
+}
+.btn-submit:hover { background: var(--orange-dim); box-shadow: 0 8px 30px rgba(255,58,0,0.4); }
+.btn-submit:hover::before { left: 100%; }
+.btn-submit:active { transform: scale(0.99); }
+
+/* SCREEN 3 — SUCCESS */
+#s-success { background: var(--black); align-items: center; justify-content: center; text-align: center; padding: 2rem; }
+.success-ring {
+  width: 100px; height: 100px; border-radius: 50%; background: rgba(0,200,81,0.1); border: 1px solid rgba(0,200,81,0.3);
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem;
+  animation: popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both; position: relative;
+}
+.success-ring::before { content: ''; position: absolute; inset: -8px; border-radius: 50%; border: 1px solid rgba(0,200,81,0.12); animation: ringPulse 2s ease-in-out 0.5s infinite; }
+@keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes ringPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: 0.4; } }
+.check-svg { width: 36px; height: 36px; }
+.success-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.5rem, 8vw, 4rem); letter-spacing: -0.01em; line-height: 0.95; text-transform: uppercase; margin-bottom: 1rem; animation: fadeUp 0.6s 0.3s var(--transition) both; }
+.success-sub { font-size: 0.95rem; color: var(--white-60); line-height: 1.65; max-width: 360px; font-weight: 300; animation: fadeUp 0.6s 0.45s var(--transition) both; margin: 0 auto; }
+.success-card { margin-top: 2rem; background: var(--white-5); border: 1px solid var(--white-10); border-radius: var(--radius); padding: 1.5rem; max-width: 340px; width: 100%; animation: fadeUp 0.6s 0.6s var(--transition) both; }
+.success-card-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+.success-card-co { font-size: 0.8rem; color: var(--white-30); margin-bottom: 1.1rem; }
+.success-sig-img { width: 100%; height: 60px; object-fit: contain; background: var(--white); border-radius: 4px; margin-bottom: 1.1rem; }
+.success-meta { display: flex; gap: 0.5rem; align-items: center; justify-content: center; font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--white-30); }
+.success-dot { width: 4px; height: 4px; background: var(--orange); border-radius: 50%; }
+.success-time { margin-top: 0.5rem; font-size: 0.75rem; color: var(--white-30); animation: fadeUp 0.6s 0.75s var(--transition) both; }
+
+/* SCREEN 4 — ADMIN PIN */
+#s-pin { background: var(--black); align-items: center; justify-content: center; text-align: center; padding: 2rem; }
+.pin-box { max-width: 320px; width: 100%; }
+.pin-icon { font-size: 2.4rem; margin-bottom: 1rem; }
+.pin-title { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: -0.01em; }
+.pin-sub { font-size: 0.82rem; color: var(--white-30); margin-bottom: 1.75rem; font-weight: 300; }
+.pin-input {
+  width: 100%; background: var(--black-3); border: 1px solid var(--white-10); border-radius: var(--radius);
+  padding: 0.95rem 1rem; font-family: 'DM Sans', sans-serif; font-size: 1.4rem; letter-spacing: 0.5em; text-align: center;
+  color: var(--white); outline: none; margin-bottom: 1rem;
+}
+.pin-input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,58,0,0.1); }
+.pin-input.shake { animation: shake 0.4s; border-color: var(--orange); }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+.pin-actions { display: flex; gap: 0.6rem; }
+.pin-btn-back {
+  flex: 1; background: transparent; border: 1px solid var(--white-10); color: var(--white-30); padding: 0.85rem;
+  border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.78rem; letter-spacing: 0.12em;
+  text-transform: uppercase; cursor: pointer;
+}
+.pin-btn-go {
+  flex: 1.4; background: var(--orange); border: none; color: var(--white); padding: 0.85rem; border-radius: var(--radius);
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem; letter-spacing: 0.12em; cursor: pointer;
+}
+
+/* SCREEN 5 — HISTORY */
+#s-history { background: var(--black-2); }
+.hist-topbar {
+  display: flex; align-items: center; gap: 1rem; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--white-10);
+  background: var(--black); position: sticky; top: 0; z-index: 10; flex-shrink: 0; flex-wrap: wrap;
+}
+.hist-title-wrap { flex: 1; min-width: 140px; }
+.hist-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: -0.5px; line-height: 1; }
+.hist-count { font-size: 0.68rem; color: var(--white-30); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.2rem; }
+.hist-actions { display: flex; gap: 0.5rem; }
+.hist-btn {
+  background: transparent; border: 1px solid var(--white-10); color: var(--white-30); padding: 0.5rem 0.8rem;
+  border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.68rem;
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+}
+.hist-btn:hover { border-color: var(--orange); color: var(--orange); }
+.hist-list { padding: 1.25rem 1.5rem 3rem; max-width: 640px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; }
+.hist-empty { text-align: center; color: var(--white-30); font-size: 0.85rem; padding: 3rem 1rem; font-weight: 300; }
+.hist-card { background: var(--white-5); border: 1px solid var(--white-10); border-radius: var(--radius); padding: 1rem 1.1rem; display: flex; gap: 1rem; align-items: center; }
+.hist-card-main { flex: 1; min-width: 0; }
+.hist-card-top { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; margin-bottom: 0.3rem; }
+.hist-card-name { font-size: 0.95rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-card-time { font-size: 0.68rem; color: var(--white-30); white-space: nowrap; flex-shrink: 0; }
+.hist-card-sub { font-size: 0.75rem; color: var(--white-60); margin-bottom: 0.4rem; }
+.hist-card-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.hist-tag { font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.15rem 0.5rem; border-radius: 10px; background: var(--orange-glow); color: var(--orange); border: 1px solid rgba(255,58,0,0.25); }
+.hist-tag.muted { background: var(--white-10); color: var(--white-60); border-color: var(--white-10); }
+.hist-sig { width: 96px; height: 44px; object-fit: contain; background: var(--white); border-radius: 4px; flex-shrink: 0; }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 400px) { .lang-card { padding: 1.2rem 1.3rem; } .hist-sig{width:72px;} }
+@media (min-height: 700px) { .slide { padding: 2.5rem 2rem; } }
+</style>
+</head>
+<body>
+
+<!-- SCREEN 0 — LANGUAGE -->
+<div id="s-lang" class="screen active">
+  <div class="grid-bg"></div>
+  <div class="radial-glow"></div>
+  <div class="lang-inner">
+    <div class="gxo-wordmark"><span class="g">G</span><span class="x">X</span><span class="o">O</span></div>
+    <p class="tagline">Logistics at full potential</p>
+    <p class="lang-prompt">Choose your language</p>
+    <div class="lang-grid">
+      <button class="lang-card" onclick="boot('fr')"><span class="lang-flag">🇫🇷</span><span class="lang-label">Français</span></button>
+      <button class="lang-card" onclick="boot('en')"><span class="lang-flag">🇬🇧</span><span class="lang-label">English</span></button>
+      <button class="lang-card" onclick="boot('es')"><span class="lang-flag">🇪🇸</span><span class="lang-label">Español</span></button>
+      <button class="lang-card" onclick="boot('ro')"><span class="lang-flag">🇷🇴</span><span class="lang-label">Română</span></button>
+    </div>
+  </div>
+  <button class="admin-access" title="Historique / Administration" onclick="openPin()">🕓</button>
+</div>
+
+<!-- SCREEN 1 — SLIDES -->
+<div id="s-slides" class="screen">
+  <div class="topbar">
+    <div class="topbar-logo">G<span class="x">X</span>O</div>
+    <div class="topbar-info"><div class="topbar-site" id="tb-site"></div></div>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+
+  <div class="slides-area" id="slides-area">
+    <div class="slide" id="sl-0"><div class="slide-badge" id="b0"></div><div class="icon-ring">👋</div><h2 class="slide-heading" id="h0"></h2><p class="slide-body" id="p0"></p></div>
+    <div class="slide" id="sl-1"><div class="slide-badge" id="b1"></div><div class="icon-ring">⚠️</div><h2 class="slide-heading" id="h1"></h2><div class="safety-wrap" id="safety-grid"></div><p class="safety-note" id="safety-note"></p></div>
+    <div class="slide" id="sl-2"><div class="slide-badge" id="b2"></div><div class="icon-ring">🚨</div><h2 class="slide-heading" id="h2"></h2><div class="emergency-wrap" id="emergency-wrap"></div></div>
+    <div class="slide" id="sl-3"><div class="slide-badge" id="b3"></div><div class="icon-ring">🚛</div><h2 class="slide-heading" id="h3"></h2><p class="slide-body" id="p3"></p></div>
+    <div class="slide" id="sl-4"><div class="slide-badge" id="b4"></div><div class="icon-ring">✍️</div><h2 class="slide-heading" id="h4"></h2><p class="slide-body" id="p4"></p></div>
+  </div>
+
+  <div class="slides-nav">
+    <button class="btn-back" id="btn-back" onclick="prevSlide()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M13 7H1M6 2L1 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="btn-back-label"></span>
+    </button>
+    <div class="dots" id="dots-wrap"></div>
+    <button class="btn-next" id="btn-next" onclick="nextSlide()">
+      <span id="btn-label"></span>
+      <svg class="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7h12M8 2l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- SCREEN 2 — FORM -->
+<div id="s-form" class="screen">
+  <div class="form-topbar">
+    <button class="btn-back-form" onclick="show('s-slides'); goSlide(N-1);">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M13 7H1M6 2L1 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="back-form-label"></span>
+    </button>
+    <div class="form-topbar-divider"></div>
+    <div class="form-topbar-logo">G<span class="x">X</span>O</div>
+    <div class="form-topbar-divider"></div>
+    <div class="form-topbar-label" id="ft-label"></div>
+  </div>
+
+  <div class="form-content">
+    <div class="form-eyebrow"><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#FF3A00"/></svg><span id="fe-text"></span></div>
+    <h3 class="form-title" id="form-title"></h3>
+    <p class="form-subtitle" id="form-sub"></p>
+    <div class="form-divider"></div>
+
+    <div class="field">
+      <div class="field-label"><span id="lbl-nom"></span><span class="req">*</span></div>
+      <input class="field-input" type="text" id="f-nom" autocomplete="family-name">
+    </div>
+    <div class="field">
+      <div class="field-label"><span id="lbl-prenom"></span><span class="req">*</span></div>
+      <input class="field-input" type="text" id="f-prenom" autocomplete="given-name">
+    </div>
+    <div class="field">
+      <div class="field-label"><span id="lbl-immat"></span><span class="req">*</span></div>
+      <input class="field-input" type="text" id="f-immat" autocomplete="off" style="text-transform:uppercase">
+    </div>
+    <div class="field">
+      <div class="field-label"><span id="lbl-soc"></span><span class="req">*</span></div>
+      <input class="field-input" type="text" id="f-soc" autocomplete="organization">
+    </div>
+    <div class="field">
+      <div class="field-label"><span id="lbl-type"></span><span class="req">*</span></div>
+      <div class="select-wrap">
+        <select class="field-input" id="f-type">
+          <option value="" id="opt-def"></option>
+          <option value="dechargement" id="opt-liv"></option>
+          <option value="chargement" id="opt-chg"></option>
+        </select>
+      </div>
+    </div>
+
+    <div class="consent-row" id="consent-row" onclick="toggleConsent()">
+      <div class="checkbox-custom" id="checkbox">
+        <svg class="check-svg" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <p class="consent-text" id="consent-text"></p>
+    </div>
+
+    <div class="sig-block">
+      <div class="sig-head">
+        <div class="field-label" style="margin-bottom:0;"><span id="lbl-sig"></span><span class="req">*</span></div>
+        <button type="button" class="sig-clear" id="sig-clear-btn" onclick="clearSignature()"></button>
+      </div>
+      <p class="sig-hint" id="sig-hint"></p>
+      <div class="sig-canvas-wrap" id="sig-wrap">
+        <span class="sig-placeholder" id="sig-placeholder"></span>
+        <div class="sig-line"></div>
+        <canvas id="sig-pad"></canvas>
+      </div>
+    </div>
+
+    <button class="btn-submit" id="btn-sub" onclick="submit()"></button>
+  </div>
+</div>
+
+<!-- SCREEN 3 — SUCCESS -->
+<div id="s-success" class="screen">
+  <div class="success-ring"><svg class="check-svg" viewBox="0 0 36 36" fill="none"><path d="M8 18l7 7 13-13" stroke="#00C851" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <h3 class="success-title" id="s-title"></h3>
+  <p class="success-sub" id="s-sub"></p>
+  <div class="success-card">
+    <div class="success-card-name" id="s-name"></div>
+    <div class="success-card-co" id="s-co"></div>
+    <img class="success-sig-img" id="s-sig-img" alt="signature">
+    <div class="success-meta"><span id="s-type-txt"></span><div class="success-dot"></div><span>GXO Croissy-Beaubourg</span></div>
+  </div>
+  <div class="success-time" id="s-time"></div>
+</div>
+
+<!-- SCREEN 4 — ADMIN PIN -->
+<div id="s-pin" class="screen">
+  <div class="pin-box">
+    <div class="pin-icon">🔒</div>
+    <div class="pin-title">Accès admin</div>
+    <p class="pin-sub">Saisissez le code pour consulter l'historique des enregistrements.</p>
+    <input class="pin-input" id="pin-input" type="password" inputmode="text" maxlength="5" autocomplete="off" placeholder="••••">
+    <div class="pin-actions">
+      <button class="pin-btn-back" onclick="show('s-lang')">Annuler</button>
+      <button class="pin-btn-go" onclick="checkPin()">Valider</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 5 — HISTORY -->
+<div id="s-history" class="screen">
+  <div class="hist-topbar">
+    <button class="btn-back-form" onclick="show('s-lang')">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M13 7H1M6 2L1 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Retour</span>
+    </button>
+    <div class="hist-title-wrap">
+      <div class="hist-title">Historique</div>
+      <div class="hist-count" id="hist-count">0 enregistrement</div>
+    </div>
+    <div class="hist-actions">
+      <button class="hist-btn" onclick="exportCsv()">Exporter CSV</button>
+      <button class="hist-btn" onclick="clearAllHistory()">Vider</button>
+    </div>
+  </div>
+  <div class="hist-list" id="hist-list"></div>
+</div>
+
+<script>
+/* ─── TRANSLATIONS ─── */
+const COPY = {
+fr: {
+  site: ['Croissy-Beaubourg', 'Armand Thiéry'],
+  slides: [
+    { badge:'Bienvenue', h:'Bienvenue\nchez <em>GXO</em>', p:'Vous arrivez sur le site logistique GXO de Croissy-Beaubourg, opéré pour le compte d\'Armand Thiéry. Merci de prendre quelques instants pour lire les informations importantes ci-dessous.' },
+    { badge:'⚠️ Sécurité', h:'Protocole\n<em>de sécurité</em>', safety:[
+      {i:'🚫', t:'Accès interdit dans l\'entrepôt sans autorisation'},
+      {i:'🚭', t:'Interdit de fumer dans l\'entrepôt'},
+      {i:'🚦', t:'Vitesse limitée à 20 km/h — respectez le code de la route'},
+      {i:'📝', t:'Obligation de s\'enregistrer sur le registre des chauffeurs'},
+      {i:'🛑', t:'Toutes les opérations doivent être effectuées moteur éteint et frein à main enclenché'},
+      {i:'⛔', t:'Interdiction de monter ou descendre par les quais'},
+      {i:'🧹', t:'Maintenir les locaux communs propres'},
+      {i:'👟', t:'Chaussures de sécurité obligatoires en cas d\'accès à l\'entrepôt'},
+      {i:'🔑', t:'Remise des clés obligatoire'},
+      {i:'🗺️', t:'Respecter le plan et les règles de sécurité sur le site'},
+      {i:'🦺', t:'Gilet fluorescent obligatoire'},
+      {i:'🔻', t:'Cale et béquille de sécurité obligatoires pour les remorques décrochées'},
+      {i:'✅', t:'Avant chaque départ, vérifier que l\'opérateur a fini ses opérations'}
+    ], note:'Le non-respect de ce protocole de sécurité sera sous la responsabilité du conducteur.' },
+    { badge:'Urgences', h:'En cas\nd\'<em>urgence</em>', emergency:{
+      cats:[
+        {i:'🔥', t:'Alarme incendie', steps:['Se diriger vers l\'issue de secours la plus proche','Se rendre au point de rassemblement indiqué','Suivre les instructions du personnel GXO']},
+        {i:'🚑', t:'Accident corporel', steps:['Prévenir un responsable GXO','Prévenir un SST de l\'entreprise']},
+        {i:'⚠️', t:'Incident ou sinistre matériel', steps:['Prévenir immédiatement un responsable GXO']}
+      ],
+      numbers:[{l:'Gendarmerie', n:'17'},{l:'SAMU', n:'15'},{l:'Pompiers', n:'18'}]
+    }},
+    { badge:'Quais', h:'Accès\naux <em>quais</em>', p:'Ne vous approchez pas des quais sans autorisation d\'un agent GXO.' },
+    { badge:'Enregistrement', h:'Dernière\n<em>étape</em>', p:'Merci de vous enregistrer avant d\'accéder aux quais. Remplissez le formulaire suivant et signez pour confirmer que vous avez pris connaissance des consignes. Cet enregistrement est obligatoire pour votre passage.' }
+  ],
+  next:'Suivant', register:"M'enregistrer",
+  formLabel:'Site Croissy-Beaubourg', formEye:'Enregistrement chauffeur',
+  formTitle:'Check-in\nChauffeur', formSub:'Merci de remplir tous les champs obligatoires',
+  lNom:'Nom', lPrenom:'Prénom', phNom:'Ex : Adjout', phPrenom:'Ex : Walid', lImmat:'Immatriculation', lSoc:'Société / Transporteur', lType:'Type de passage',
+  oDef:'— Sélectionner —', oLiv:'Déchargement', oChg:'Chargement',
+  consent:'J\'ai lu et j\'accepte les consignes de sécurité du site GXO Croissy-Beaubourg. Je comprends que le non-respect de ce protocole engage ma responsabilité.',
+  lSig:'Signature', sigHint:'Signez avec le doigt ou la souris dans le cadre ci-dessous.', sigClear:'Effacer',
+  submit:'Confirmer mon arrivée',
+  sTitle:'Enregistrement\nconfirmé', sSub:'Votre passage est bien enregistré. Un agent GXO va vous prendre en charge. Merci de patienter à l\'accueil.',
+  sByLabel:'Enregistré le', sLiv:'Déchargement', sChg:'Chargement',
+  errFields:'Merci de remplir tous les champs.', errConsent:'Merci d\'accepter les consignes de sécurité.', errSig:'Merci de signer pour confirmer votre enregistrement.'
+},
+en: {
+  site: ['Croissy-Beaubourg', 'Armand Thiéry'],
+  slides: [
+    { badge:'Welcome', h:'Welcome\nto <em>GXO</em>', p:'You are arriving at the GXO logistics site in Croissy-Beaubourg, operated on behalf of Armand Thiéry. Please take a few moments to read the important information below.' },
+    { badge:'⚠️ Safety', h:'Safety\n<em>protocol</em>', safety:[
+      {i:'🚫', t:'No entry into the warehouse without authorization'},
+      {i:'🚭', t:'No smoking in the warehouse'},
+      {i:'🚦', t:'Speed limited to 20 km/h — obey traffic rules'},
+      {i:'📝', t:'Mandatory sign-in on the driver register'},
+      {i:'🛑', t:'All operations must be carried out with the engine off and handbrake on'},
+      {i:'⛔', t:'Do not climb up or down via the loading docks'},
+      {i:'🧹', t:'Keep common areas clean'},
+      {i:'👟', t:'Safety shoes required to access the warehouse'},
+      {i:'🔑', t:'Keys handover is mandatory'},
+      {i:'🗺️', t:'Follow the site map and safety rules'},
+      {i:'🦺', t:'Hi-vis vest mandatory'},
+      {i:'🔻', t:'Wheel chock and safety leg mandatory for detached trailers'},
+      {i:'✅', t:'Before departure, verify the operator has finished all operations'}
+    ], note:'Failure to comply with this safety protocol is the driver\'s responsibility.' },
+    { badge:'Emergency', h:'In case of\n<em>emergency</em>', emergency:{
+      cats:[
+        {i:'🔥', t:'Fire alarm', steps:['Head to the nearest emergency exit','Go to the designated assembly point','Follow instructions from GXO staff']},
+        {i:'🚑', t:'Personal injury', steps:['Notify a GXO supervisor','Notify a company first-aider (SST)']},
+        {i:'⚠️', t:'Incident or material damage', steps:['Immediately notify a GXO supervisor']}
+      ],
+      numbers:[{l:'Police', n:'17'},{l:'Medical', n:'15'},{l:'Fire', n:'18'}]
+    }},
+    { badge:'Docks', h:'Dock\n<em>access</em>', p:'Do not approach the loading docks without authorization from a GXO agent.' },
+    { badge:'Registration', h:'Last\n<em>step</em>', p:'Please register before accessing the docks. Fill in the form below and sign to confirm you have read the instructions. This registration is mandatory for your visit.' }
+  ],
+  next:'Next', register:'Register',
+  formLabel:'Croissy-Beaubourg Site', formEye:'Driver check-in',
+  formTitle:'Driver\nCheck-in', formSub:'Please fill in all required fields',
+  lNom:'Last Name', lPrenom:'First Name', phNom:'E.g.: Adjout', phPrenom:'E.g.: Walid', lImmat:'Vehicle Registration', lSoc:'Company / Carrier', lType:'Visit type',
+  oDef:'— Select —', oLiv:'Unloading', oChg:'Loading',
+  consent:'I have read and accept the safety rules of the GXO Croissy-Beaubourg site. I understand that failure to comply with this protocol is my responsibility.',
+  lSig:'Signature', sigHint:'Sign with your finger or mouse in the box below.', sigClear:'Clear',
+  submit:'Confirm my arrival',
+  sTitle:'Check-in\nconfirmed', sSub:'Your visit has been registered. A GXO agent will assist you shortly. Please wait at reception.',
+  sByLabel:'Registered on', sLiv:'Unloading', sChg:'Loading',
+  errFields:'Please fill in all fields.', errConsent:'Please accept the safety rules.', errSig:'Please sign to confirm your check-in.'
+},
+es: {
+  site: ['Croissy-Beaubourg', 'Armand Thiéry'],
+  slides: [
+    { badge:'Bienvenido', h:'Bienvenido\na <em>GXO</em>', p:'Ha llegado al sitio logístico GXO de Croissy-Beaubourg, operado para Armand Thiéry. Por favor tome unos momentos para leer la información importante a continuación.' },
+    { badge:'⚠️ Seguridad', h:'Protocolo\n<em>de seguridad</em>', safety:[
+      {i:'🚫', t:'Acceso prohibido al almacén sin autorización'},
+      {i:'🚭', t:'Prohibido fumar en el almacén'},
+      {i:'🚦', t:'Velocidad limitada a 20 km/h — respete el código de circulación'},
+      {i:'📝', t:'Obligación de registrarse en el registro de conductores'},
+      {i:'🛑', t:'Todas las operaciones deben realizarse con el motor apagado y el freno de mano puesto'},
+      {i:'⛔', t:'Prohibido subir o bajar por los muelles'},
+      {i:'🧹', t:'Mantener limpias las zonas comunes'},
+      {i:'👟', t:'Calzado de seguridad obligatorio para acceder al almacén'},
+      {i:'🔑', t:'Entrega de llaves obligatoria'},
+      {i:'🗺️', t:'Respetar el plano y las normas de seguridad del sitio'},
+      {i:'🦺', t:'Chaleco reflectante obligatorio'},
+      {i:'🔻', t:'Calzo y pata de apoyo de seguridad obligatorios para remolques desenganchados'},
+      {i:'✅', t:'Antes de cada salida, verificar que el operador ha terminado sus operaciones'}
+    ], note:'El incumplimiento de este protocolo de seguridad será responsabilidad del conductor.' },
+    { badge:'Emergencia', h:'En caso de\n<em>emergencia</em>', emergency:{
+      cats:[
+        {i:'🔥', t:'Alarma de incendio', steps:['Diríjase a la salida de emergencia más cercana','Vaya al punto de encuentro indicado','Siga las instrucciones del personal de GXO']},
+        {i:'🚑', t:'Accidente corporal', steps:['Avise a un responsable de GXO','Avise a un socorrista (SST) de la empresa']},
+        {i:'⚠️', t:'Incidente o siniestro material', steps:['Avise inmediatamente a un responsable de GXO']}
+      ],
+      numbers:[{l:'Policía', n:'17'},{l:'SAMU', n:'15'},{l:'Bomberos', n:'18'}]
+    }},
+    { badge:'Muelles', h:'Acceso\na <em>muelles</em>', p:'No se acerque a los muelles sin autorización de un agente GXO.' },
+    { badge:'Registro', h:'Último\n<em>paso</em>', p:'Por favor regístrese antes de acceder a los muelles. Complete el formulario y firme para confirmar que ha leído las instrucciones. El registro es obligatorio para su visita.' }
+  ],
+  next:'Siguiente', register:'Registrarme',
+  formLabel:'Sitio Croissy-Beaubourg', formEye:'Registro de conductor',
+  formTitle:'Registro\nConductor', formSub:'Por favor, complete todos los campos obligatorios',
+  lNom:'Apellido', lPrenom:'Nombre', phNom:'Ej.: Adjout', phPrenom:'Ej.: Walid', lImmat:'Matrícula del vehículo', lSoc:'Empresa / Transportista', lType:'Tipo de visita',
+  oDef:'— Seleccionar —', oLiv:'Descarga', oChg:'Carga',
+  consent:'He leído y acepto las normas de seguridad del sitio GXO Croissy-Beaubourg. Entiendo que el incumplimiento de este protocolo es mi responsabilidad.',
+  lSig:'Firma', sigHint:'Firme con el dedo o el ratón dentro del recuadro.', sigClear:'Borrar',
+  submit:'Confirmar mi llegada',
+  sTitle:'Registro\nconfirmado', sSub:'Su visita ha sido registrada. Un agente GXO le atenderá en breve. Por favor espere en recepción.',
+  sByLabel:'Registrado el', sLiv:'Descarga', sChg:'Carga',
+  errFields:'Por favor, complete todos los campos.', errConsent:'Por favor, acepte las normas de seguridad.', errSig:'Por favor, firme para confirmar su registro.'
+},
+ro: {
+  site: ['Croissy-Beaubourg', 'Armand Thiéry'],
+  slides: [
+    { badge:'Bine ați venit', h:'Bine ați venit\nla <em>GXO</em>', p:'Ați ajuns la depozitul logistic GXO din Croissy-Beaubourg, operat în numele Armand Thiéry. Vă rugăm să acordați câteva momente pentru a citi informațiile importante de mai jos.' },
+    { badge:'⚠️ Siguranță', h:'Protocol\nde <em>siguranță</em>', safety:[
+      {i:'🚫', t:'Accesul în depozit este interzis fără autorizație'},
+      {i:'🚭', t:'Fumatul este interzis în depozit'},
+      {i:'🚦', t:'Viteză limitată la 20 km/h — respectați codul rutier'},
+      {i:'📝', t:'Este obligatorie înregistrarea în registrul șoferilor'},
+      {i:'🛑', t:'Toate operațiunile se efectuează cu motorul oprit și frâna de mână trasă'},
+      {i:'⛔', t:'Este interzisă urcarea sau coborârea pe la rampe'},
+      {i:'🧹', t:'Păstrați curate spațiile comune'},
+      {i:'👟', t:'Încălțăminte de protecție obligatorie pentru accesul în depozit'},
+      {i:'🔑', t:'Predarea cheilor este obligatorie'},
+      {i:'🗺️', t:'Respectați planul site-ului și regulile de securitate'},
+      {i:'🦺', t:'Vestă reflectorizantă obligatorie'},
+      {i:'🔻', t:'Cală și suport de siguranță obligatorii pentru remorcile decuplate'},
+      {i:'✅', t:'Înainte de fiecare plecare, verificați dacă operatorul a terminat operațiunile'}
+    ], note:'Nerespectarea acestui protocol de securitate este responsabilitatea șoferului.' },
+    { badge:'Urgențe', h:'În caz\nde <em>urgență</em>', emergency:{
+      cats:[
+        {i:'🔥', t:'Alarmă de incendiu', steps:['Îndreptați-vă spre ieșirea de urgență cea mai apropiată','Mergeți la punctul de adunare indicat','Urmați instrucțiunile personalului GXO']},
+        {i:'🚑', t:'Accident corporal', steps:['Anunțați un responsabil GXO','Anunțați un salvator (SST) al companiei']},
+        {i:'⚠️', t:'Incident sau daună materială', steps:['Anunțați imediat un responsabil GXO']}
+      ],
+      numbers:[{l:'Jandarmerie', n:'17'},{l:'SAMU', n:'15'},{l:'Pompieri', n:'18'}]
+    }},
+    { badge:'Rampe', h:'Acces\nla <em>rampe</em>', p:'Nu vă apropiați de rampe fără autorizația unui agent GXO.' },
+    { badge:'Înregistrare', h:'Ultimul\n<em>pas</em>', p:'Vă rugăm să vă înregistrați înainte de a accesa rampele. Completați formularul de mai jos și semnați pentru a confirma că ați luat cunoștință de instrucțiuni. Această înregistrare este obligatorie.' }
+  ],
+  next:'Următorul', register:'Înregistrare',
+  formLabel:'Site Croissy-Beaubourg', formEye:'Înregistrare șofer',
+  formTitle:'Check-in\nȘofer', formSub:'Vă rugăm completați toate câmpurile obligatorii',
+  lNom:'Nume', lPrenom:'Prenume', phNom:'Ex.: Adjout', phPrenom:'Ex.: Walid', lImmat:'Număr de înmatriculare', lSoc:'Companie / Transportator', lType:'Tip de vizită',
+  oDef:'— Selectați —', oLiv:'Descărcare', oChg:'Încărcare',
+  consent:'Am citit și accept regulile de securitate ale site-ului GXO Croissy-Beaubourg. Înțeleg că nerespectarea acestui protocol este responsabilitatea mea.',
+  lSig:'Semnătură', sigHint:'Semnați cu degetul sau cu mouse-ul în caseta de mai jos.', sigClear:'Șterge',
+  submit:'Confirm sosirea',
+  sTitle:'Înregistrare\nconfirmată', sSub:'Vizita dumneavoastră a fost înregistrată. Un agent GXO vă va prelua în curând. Vă rugăm așteptați la recepție.',
+  sByLabel:'Înregistrat pe', sLiv:'Descărcare', sChg:'Încărcare',
+  errFields:'Vă rugăm completați toate câmpurile.', errConsent:'Vă rugăm acceptați regulile de securitate.', errSig:'Vă rugăm semnați pentru a confirma înregistrarea.'
+}
+};
+
+/* ─── CONFIG ───
+   1) Colle ton URL Power Automate ci-dessous (optionnel, en plus de l'historique local)
+   2) Change le code admin par défaut si besoin (ADMIN_PIN)
+──────────────── */
+const POWER_AUTOMATE_URL = 'COLLE_TON_URL_ICI';
+const ADMIN_PIN = 'walid';
+const HISTORY_KEY = 'gxo_checkin_history';
+const HISTORY_MAX = 1000;
+
+/* ─── STATE ─── */
+let lang = 'fr';
+let slide = 0;
+const N = 5;
+let consented = false;
+
+/* ─── SCREENS ─── */
+const screens = ['s-lang','s-slides','s-form','s-success','s-pin','s-history'];
+function show(id) {
+  screens.forEach(s => { document.getElementById(s).classList.toggle('active', s === id); });
+  if (id !== 's-slides') window.scrollTo(0,0);
+}
+
+/* ─── BOOT ─── */
+function boot(l) {
+  lang = l;
+  slide = 0;
+  consented = false;
+  document.getElementById('checkbox').classList.remove('checked');
+  applyLang();
+  show('s-slides');
+  goSlide(0);
+  setTimeout(initSignaturePad, 50);
+}
+
+function renderSafety(container, items) {
+  container.innerHTML = items.map(s => `<div class="s-item"><span class="s-icon">${s.i}</span><span class="s-text">${s.t}</span></div>`).join('');
+}
+function renderEmergency(container, em) {
+  const cats = em.cats.map(c => `
+    <div class="em-cat">
+      <div class="em-head"><span class="em-icon">${c.i}</span><span class="em-title">${c.t}</span></div>
+      <ul class="em-steps">${c.steps.map(s => `<li>${s}</li>`).join('')}</ul>
+    </div>`).join('');
+  const nums = em.numbers.map(n => `<div class="em-num"><span class="em-num-val">${n.n}</span><span class="em-num-label">${n.l}</span></div>`).join('');
+  container.innerHTML = cats + `<div class="em-numbers">${nums}</div>`;
+}
+
+function applyLang() {
+  const c = COPY[lang];
+  document.getElementById('tb-site').innerHTML = c.site[0] + '<br>' + c.site[1];
+
+  c.slides.forEach((sl, i) => {
+    const b = document.getElementById('b'+i);
+    const h = document.getElementById('h'+i);
+    if (b) b.innerHTML = sl.badge;
+    if (h) h.innerHTML = sl.h.replace('\n','<br>');
+    if (sl.safety) {
+      renderSafety(document.getElementById('safety-grid'), sl.safety);
+      document.getElementById('safety-note').textContent = sl.note;
+    } else if (sl.emergency) {
+      renderEmergency(document.getElementById('emergency-wrap'), sl.emergency);
+    } else {
+      const p = document.getElementById('p'+i);
+      if (p) p.textContent = sl.p;
+    }
+  });
+
+  const dw = document.getElementById('dots-wrap');
+  dw.innerHTML = '';
+  for (let i=0;i<N;i++) {
+    const d = document.createElement('div');
+    d.className = 'dot'; d.id = 'dot-'+i;
+    dw.appendChild(d);
+  }
+
+  const backLabels = {fr:'Retour', en:'Back', es:'Atrás', ro:'Înapoi'};
+  const bfl = document.getElementById('back-form-label');
+  if (bfl) bfl.textContent = backLabels[lang];
+
+  document.getElementById('ft-label').textContent = c.formLabel;
+  document.getElementById('fe-text').textContent = c.formEye;
+  document.getElementById('form-title').innerHTML = c.formTitle.replace('\n','<br>');
+  document.getElementById('form-sub').textContent = c.formSub;
+  document.getElementById('lbl-nom').textContent = c.lNom;
+  document.getElementById('lbl-prenom').textContent = c.lPrenom;
+  document.getElementById('f-nom').placeholder = c.phNom;
+  document.getElementById('f-prenom').placeholder = c.phPrenom;
+  document.getElementById('lbl-immat').textContent = c.lImmat;
+  document.getElementById('lbl-soc').textContent = c.lSoc;
+  document.getElementById('lbl-type').textContent = c.lType;
+  document.getElementById('opt-def').textContent = c.oDef;
+  document.getElementById('opt-liv').textContent = c.oLiv;
+  document.getElementById('opt-chg').textContent = c.oChg;
+  document.getElementById('consent-text').textContent = c.consent;
+  document.getElementById('lbl-sig').textContent = c.lSig;
+  document.getElementById('sig-hint').textContent = c.sigHint;
+  document.getElementById('sig-clear-btn').textContent = c.sigClear;
+  document.getElementById('sig-placeholder').textContent = '✕';
+  document.getElementById('btn-sub').textContent = c.submit;
+}
+
+/* ─── SLIDE NAVIGATION ─── */
+function goSlide(idx) {
+  const prev = document.querySelector('.slide.active');
+  if (prev) { prev.classList.remove('active'); prev.classList.add('exit'); setTimeout(() => prev.classList.remove('exit'), 600); }
+  setTimeout(() => { document.getElementById('sl-'+idx).classList.add('active'); }, prev ? 80 : 0);
+
+  document.getElementById('progress').style.width = ((idx+1)/N*100)+'%';
+  for (let i=0;i<N;i++) { const d = document.getElementById('dot-'+i); if (d) d.classList.toggle('on', i===idx); }
+
+  const backLabels = {fr:'Retour', en:'Back', es:'Atrás', ro:'Înapoi'};
+  const bk = document.getElementById('btn-back');
+  const bkl = document.getElementById('btn-back-label');
+  if (bkl) bkl.textContent = backLabels[lang];
+  if (bk) bk.classList.toggle('hidden', idx === 0);
+
+  const btn = document.getElementById('btn-next');
+  const lbl = document.getElementById('btn-label');
+  const c = COPY[lang];
+  if (idx === N-1) { lbl.textContent = c.register; btn.classList.add('cta'); }
+  else { lbl.textContent = c.next; btn.classList.remove('cta'); }
+}
+
+function prevSlide() { if (slide > 0) goSlide(--slide); else { show('s-lang'); } }
+
+function nextSlide() {
+  if (slide < N-1) { goSlide(++slide); }
+  else {
+    ['f-nom','f-prenom','f-immat','f-soc'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-type').value = '';
+    consented = false;
+    document.getElementById('checkbox').classList.remove('checked');
+    clearSignature();
+    show('s-form');
+  }
+}
+
+/* ─── CONSENT ─── */
+function toggleConsent() { consented = !consented; document.getElementById('checkbox').classList.toggle('checked', consented); }
+
+/* ─── SIGNATURE PAD ─── */
+let sigCtx = null, sigDrawing = false, sigHasInk = false, sigLastPt = null;
+
+function initSignaturePad() {
+  const canvas = document.getElementById('sig-pad');
+  const wrap = document.getElementById('sig-wrap');
+  const ratio = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  canvas.width = w * ratio;
+  canvas.height = h * ratio;
+  sigCtx = canvas.getContext('2d');
+  sigCtx.scale(ratio, ratio);
+  sigCtx.lineWidth = 2.2;
+  sigCtx.lineCap = 'round';
+  sigCtx.lineJoin = 'round';
+  sigCtx.strokeStyle = '#0A0A0A';
+  sigHasInk = false;
+  document.getElementById('sig-placeholder').style.display = 'flex';
+  wrap.classList.remove('error');
+
+  if (canvas.dataset.bound) return;
+  canvas.dataset.bound = '1';
+
+  const getPos = (e) => { const rect = canvas.getBoundingClientRect(); return { x: e.clientX - rect.left, y: e.clientY - rect.top }; };
+  canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    sigDrawing = true;
+    sigLastPt = getPos(e);
+    document.getElementById('sig-placeholder').style.display = 'none';
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!sigDrawing) return;
+    e.preventDefault();
+    const pt = getPos(e);
+    sigCtx.beginPath();
+    sigCtx.moveTo(sigLastPt.x, sigLastPt.y);
+    sigCtx.lineTo(pt.x, pt.y);
+    sigCtx.stroke();
+    sigLastPt = pt;
+    sigHasInk = true;
+  });
+  const stop = () => { sigDrawing = false; };
+  canvas.addEventListener('pointerup', stop);
+  canvas.addEventListener('pointerleave', stop);
+  canvas.addEventListener('pointercancel', stop);
+}
+
+function clearSignature() {
+  const canvas = document.getElementById('sig-pad');
+  if (sigCtx) { const ratio = window.devicePixelRatio || 1; sigCtx.clearRect(0, 0, canvas.width/ratio, canvas.height/ratio); }
+  sigHasInk = false;
+  const ph = document.getElementById('sig-placeholder');
+  if (ph) ph.style.display = 'flex';
+  const wrap = document.getElementById('sig-wrap');
+  if (wrap) wrap.classList.remove('error');
+}
+
+window.addEventListener('resize', () => {
+  if (document.getElementById('s-form').classList.contains('active') || document.getElementById('s-slides').classList.contains('active')) {
+    const hadInk = sigHasInk;
+    initSignaturePad();
+    if (!hadInk) return;
+  }
+});
+
+/* ─── HISTORY / TRAÇABILITÉ (localStorage) ─── */
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch(e) { return []; }
+}
+function saveHistoryRecord(record) {
+  try {
+    const list = loadHistory();
+    list.push(record);
+    while (list.length > HISTORY_MAX) list.shift();
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+  } catch(e) { console.warn('Historique non sauvegardé (stockage local indisponible):', e); }
+}
+
+function openPin() {
+  document.getElementById('pin-input').value = '';
+  show('s-pin');
+  setTimeout(() => document.getElementById('pin-input').focus(), 200);
+}
+function checkPin() {
+  const input = document.getElementById('pin-input');
+  if (input.value === ADMIN_PIN) { renderHistoryScreen(); show('s-history'); }
+  else {
+    input.classList.add('shake');
+    setTimeout(() => input.classList.remove('shake'), 400);
+    input.value = '';
+  }
+}
+document.addEventListener('keyup', (e) => {
+  if (e.key === 'Enter' && document.getElementById('s-pin').classList.contains('active')) checkPin();
+});
+
+function renderHistoryScreen() {
+  const list = loadHistory().slice().reverse();
+  document.getElementById('hist-count').textContent = list.length + (list.length > 1 ? ' enregistrements' : ' enregistrement');
+  const wrap = document.getElementById('hist-list');
+  if (!list.length) {
+    wrap.innerHTML = '<div class="hist-empty">Aucun enregistrement pour le moment.</div>';
+    return;
+  }
+  wrap.innerHTML = list.map(r => {
+    const fullName = r.fullName || [r.prenom, r.nom].filter(Boolean).join(' ') || r.nom || '';
+    return `
+    <div class="hist-card">
+      <div class="hist-card-main">
+        <div class="hist-card-top">
+          <span class="hist-card-name">${escapeHtml(fullName)}</span>
+          <span class="hist-card-time">${r.date} · ${r.heure}</span>
+        </div>
+        <div class="hist-card-sub">${escapeHtml(r.societe)} · ${escapeHtml(r.immat)}</div>
+        <div class="hist-card-tags">
+          <span class="hist-tag">${r.typeLabel}</span>
+          <span class="hist-tag muted">${(r.langue||'').toUpperCase()}</span>
+        </div>
+      </div>
+      <img class="hist-sig" src="${r.signature}" alt="signature">
+    </div>
+  `}).join('');
+}
+function escapeHtml(str) {
+  return String(str||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function clearAllHistory() {
+  if (confirm('Supprimer définitivement tout l\'historique des enregistrements ?')) {
+    localStorage.removeItem(HISTORY_KEY);
+    renderHistoryScreen();
+  }
+}
+function exportCsv() {
+  const list = loadHistory();
+  if (!list.length) { alert('Aucun enregistrement à exporter.'); return; }
+  const header = ['Nom','Prénom','Immatriculation','Societe','Type','Langue','Date','Heure'];
+  const rows = list.map(r => [r.nom, r.prenom, r.immat, r.societe, r.typeLabel, r.langue, r.date, r.heure]
+    .map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(';'));
+  const csv = '\uFEFF' + header.join(';') + '\n' + rows.join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'gxo_historique_' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ─── SUBMIT ─── */
+async function submit() {
+  const c = COPY[lang];
+  const nom   = document.getElementById('f-nom').value.trim();
+  const prenom = document.getElementById('f-prenom').value.trim();
+  const fullName = [prenom, nom].filter(Boolean).join(' ');
+  const immat = document.getElementById('f-immat').value.trim().toUpperCase();
+  const soc   = document.getElementById('f-soc').value.trim();
+  const type  = document.getElementById('f-type').value;
+
+  if (!nom || !prenom || !immat || !soc || !type) { alert(c.errFields); return; }
+  if (!consented) { alert(c.errConsent); return; }
+  if (!sigHasInk) { document.getElementById('sig-wrap').classList.add('error'); alert(c.errSig); return; }
+
+  const signatureDataUrl = document.getElementById('sig-pad').toDataURL('image/png');
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
+  const heureStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  const typeLabel = type === 'dechargement' ? c.sLiv : c.sChg;
+
+  const btnSub = document.getElementById('btn-sub');
+  const originalText = btnSub.textContent;
+  btnSub.textContent = '⏳ ...';
+  btnSub.disabled = true;
+  btnSub.style.opacity = '0.7';
+
+  saveHistoryRecord({ nom, prenom, fullName, immat, societe: soc, type, typeLabel, langue: lang, date: dateStr, heure: heureStr, signature: signatureDataUrl });
+
+  if (POWER_AUTOMATE_URL !== 'COLLE_TON_URL_ICI') {
+    try {
+      await fetch(POWER_AUTOMATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nom, prenom, fullName, immat, societe: soc, type: typeLabel, date: dateStr, heure: heureStr, langue: lang, signature: signatureDataUrl })
+      });
+    } catch(e) { console.warn('Erreur envoi Power Automate:', e); }
+  }
+
+  btnSub.textContent = originalText;
+  btnSub.disabled = false;
+  btnSub.style.opacity = '1';
+
+  document.getElementById('s-title').innerHTML = c.sTitle.replace('\n','<br>');
+  document.getElementById('s-sub').textContent = c.sSub;
+  document.getElementById('s-name').textContent = fullName;
+  document.getElementById('s-co').textContent = soc + ' · ' + immat;
+  document.getElementById('s-sig-img').src = signatureDataUrl;
+  document.getElementById('s-type-txt').textContent = typeLabel;
+
+  const localeMap = {fr:'fr-FR', en:'en-GB', es:'es-ES', ro:'ro-RO'};
+  const dtStr = now.toLocaleDateString(localeMap[lang] || 'fr-FR', {weekday:'short',day:'2-digit',month:'long',year:'numeric'});
+  document.getElementById('s-time').textContent = c.sByLabel + ' ' + dtStr + ' — ' + heureStr;
+
+  show('s-success');
+}
+
+/* ─── INIT ─── */
+applyLang();
+</script>
+</body>
+</html>
