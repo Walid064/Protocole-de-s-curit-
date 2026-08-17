@@ -1038,11 +1038,23 @@ async function submit() {
 
   if (POWER_AUTOMATE_URL !== 'COLLE_TON_URL_ICI') {
     try {
-      await fetch(POWER_AUTOMATE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nom, prenom, fullName, societe: soc, type: typeLabel, date: dateStr, heure: heureStr, langue: lang, signature: signatureDataUrl })
-      });
+     await fetch(POWER_AUTOMATE_URL, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    name: nom,
+    "first name": prenom,
+    fullName: fullName,
+    Society: soc,
+    type: typeLabel,
+    date: dateStr,
+    heure: heureStr,
+    langue: lang
+  })
+});
+      
     } catch(e) { console.warn('Erreur envoi Power Automate:', e); }
   }
 
