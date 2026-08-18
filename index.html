@@ -1038,20 +1038,21 @@ async function submit() {
 
   if (POWER_AUTOMATE_URL !== 'COLLE_TON_URL_ICI') {
     try {
-     await fetch(POWER_AUTOMATE_URL, {
+   await fetch(POWER_AUTOMATE_URL, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    name: nom,
-    "first name": prenom,
+    nom: nom,
+    prenom: prenom,
     fullName: fullName,
-    Society: soc,
+    societe: soc,
     type: typeLabel,
     date: dateStr,
     heure: heureStr,
-    langue: lang
+    langue: lang,
+    signature: signatureDataUrl
   })
 });
       
