@@ -724,7 +724,7 @@ ro: {
    1) Colle ton URL Power Automate ci-dessous (optionnel, en plus de l'historique local)
    2) Change le code admin par défaut si besoin (ADMIN_PIN)
 ──────────────── */
-const POWER_AUTOMATE_URL = 'https://defaultf0033efed82e4c5fa7123a3948bb45.3e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/a2cedf3f2a01422c805d98a2031f76d9/triggers/manual/paths/invoke?api-version=1'; 
+const POWER_AUTOMATE_URL = 'COLLE_TON_URL_ICI';
 const ADMIN_PIN = 'walid';
 const HISTORY_KEY = 'gxo_checkin_history';
 const HISTORY_MAX = 1000;
@@ -1038,24 +1038,11 @@ async function submit() {
 
   if (POWER_AUTOMATE_URL !== 'COLLE_TON_URL_ICI') {
     try {
-   await fetch(POWER_AUTOMATE_URL, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    nom: nom,
-    prenom: prenom,
-    fullName: fullName,
-    societe: soc,
-    type: typeLabel,
-    date: dateStr,
-    heure: heureStr,
-    langue: lang,
-    signature: signatureDataUrl
-  })
-});
-      
+      await fetch(POWER_AUTOMATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nom, prenom, fullName, societe: soc, type: typeLabel, date: dateStr, heure: heureStr, langue: lang, signature: signatureDataUrl })
+      });
     } catch(e) { console.warn('Erreur envoi Power Automate:', e); }
   }
 
